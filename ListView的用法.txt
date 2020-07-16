@@ -1,0 +1,268 @@
+ListView添加新项的方法，
+首先添加一个只有一列的项，作为一个item。然后在这个item的基础上增加SubItem
+如：1.连接数据库，查询admin表并且将每一条记录添加到ListView控件上面
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using MySql.Data.MySqlClient;
+ 
+
+namespace WindowsFormsApp1
+{
+    public partial class FrmListView : Form
+    {
+        public FrmListView()
+        {
+            InitializeComponent();
+        }
+
+        private void FrmListView_Load(object sender, EventArgs e)
+        {
+            string connstr = "server=localhost;user id=root;password=root;database=company";
+            MySqlConnection conn = new MySqlConnection(connstr);
+            conn.Open();
+            string sql = "select * from admin";
+            
+            MySqlDataAdapter md = new MySqlDataAdapter(sql,conn);
+            DataTable dt = new DataTable();
+            md.Fill(dt);
+            listView1.View = View.Details;
+
+            listView1.Columns.Add("id");
+            listView1.Columns.Add("userName");
+            listView1.Columns.Add("pwd");
+            foreach (DataRow r in dt.Rows)
+            {
+                ListViewItem li = new ListViewItem();
+                li.Text = r[0].ToString(); //添加一个只有一列的item
+
+
+                ListViewItem.ListViewSubItem name = new ListViewItem.ListViewSubItem();//创建SubItem
+                ListViewItem.ListViewSubItem pwd = new ListViewItem.ListViewSubItem();
+
+                name.Text = r[1].ToString();
+                pwd.Text = r[2].ToString();
+
+                li.SubItems.Add(name);//将SubItem添加到item的SubItems集合
+                li.SubItems.Add(pwd);
+                listView1.Items.Add(li);//最后要将item添加到listview
+            }
+           
+            //listView1.Items.Add(li);
+
+        }
+    }
+}
+
+2.利用ListView显示图片，需要两个ImageList控件，一个存放大图标，一个存放小图标
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace ListviewDemo
+{
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            LoadImageList();
+            listView1.Items.Clear();
+            listView1.ShowGroups = false;
+            if(imgListLg!=null && imgListLg.Images.Count > 0)
+            {
+                for (int i = 0; i < imgListLg.Images.Count; i++)
+                {
+                 ListViewItem li = new ListViewItem();
+                  li.Text = imgListLg.Images.Keys[i];
+                    li.ImageIndex = i;
+                    listView1.Items.Add(li);
+                   
+                    
+                }
+            }
+            //listView1.View = View.LargeIcon;
+            //listView1.View = View.SmallIcon;
+            //listView1.View = View.Details;
+            //listView1.View = View.List;
+            //listView1.View = View.Tile;
+            listView1.LargeImageList = imgListLg;
+            listView1.SmallImageList = imgListSm;
+        }
+
+        Dictionary<int, string> dic = new Dictionary<int, string>();
+        public void LoadImageList()
+        {
+            string basePath = "d:/pic/pic1";
+            string[] files = Directory.GetFiles(basePath);
+            if (files.Length > 0)
+            {
+                imgListLg.Images.Clear();
+                imgListSm.Images.Clear();
+                int index = 0;
+                string[] fileTypes = { ".jpg", ".png" };
+                foreach (var file in files)
+                {
+                    if (fileTypes.Contains(Path.GetExtension(file)))
+                    {
+
+                        Image img = Image.FromFile(file);
+                        string key = Path.GetFileNameWithoutExtension(file);
+
+                        imgListLg.Images.Add(key, img);
+                        imgListSm.Images.Add(key, img);
+                        imgListLg.ImageSize = new Size(50, 50);
+                        imgListSm.ImageSize = new Size(16, 16);
+                        if (!dic.ContainsKey(index))
+                        {
+                            dic.Add(index, file);
+                        }
+                        index++;
+                    }
+
+                }
+            }
+         
+        }
+
+    }
+}
+
+3.ListView的详细视图样式的功能实现：比较复杂，具体代码：
+     private void button2_Click(object sender, EventArgs e)
+        {
+            listView1.Items.Clear();
+            listView1.Columns.Clear();
+            listView1.ShowGroups = false;
+            listView1.View = View.Details; //设置为详细视图样式
+            //添加列（表头）
+            listView1.Columns.Add("文件名", 100, HorizontalAlignment.Left);
+            listView1.Columns.Add("最后修改日期", 150, HorizontalAlignment.Left);
+            listView1.Columns.Add("类型", 100, HorizontalAlignment.Left);
+            listView1.Columns.Add("大小(kb)", 100, HorizontalAlignment.Left);
+            //添加项（item）
+            for (int i = 0; i < dic.Count; i++)
+            {
+                ListViewItem li = new ListViewItem();
+                li.ImageIndex = i;
+                li.Text = imgListSm.Images.Keys[i];
+                li.SubItems.Add(File.GetLastAccessTime(dic[i]).ToString());
+                string type=null;
+                string ext = Path.GetExtension(dic[i]);
+                switch (ext)
+                {
+                    case ".jpg":
+                    case ".png":
+                    case ".jpeg":
+                    case ".bmp":
+                    case ".gif":
+                        type = "图片";
+                        break;
+                    case ".txt":
+                        type = "文本文件";
+                        break;
+                    case "rtf":
+                    case "doc":
+                    case "docx":
+
+                        type = "富文本文件";
+                        break;
+                    case ".xlsx":
+                    case ".xls":
+                        type = "电子表格";
+                        break;
+                    case ".avi":
+                    case ".wmv":
+                    case ".mp4":
+                    case ".rm":
+                    case ".rmvb":
+                    case ".mpg":
+                    case ".flv":
+                    case ".mov":
+                        type = "商品文件";
+                        break;
+                    case ".mp3":
+                    case ".wav":
+                    case ".aac":
+                    case ".ape":
+                        type = "音频文件";
+                        break;
+                    case ".zip":
+                    case ".rar":
+                    case ".tar.gz":
+                        type = "压缩文件";
+                        break;
+                    case ".iso":
+                    case ".img":
+                    case ".dmg":
+                        type = "映像文件";
+                        break;
+                            
+                    default:
+                        type = "未知类型";
+                        break;
+                }
+                li.SubItems.Add(type);
+                //long lenKb = new FileInfo(dic[i]).Length;
+                long lenKb = new FileInfo(dic[i]).Length / 1024; ;
+                li.SubItems.Add(lenKb.ToString()+"kb");
+                listView1.Items.Add(li);
+            }
+
+4.ListView的分组功能：比较复杂
+ private void button1_Click(object sender, EventArgs e)
+        {
+
+            listView1.ShowGroups = true;
+            listView1.Groups.Clear();
+           // ListView listView2 = new ListView();
+      
+            ListViewGroup group1 = new ListViewGroup("风景");
+            ListViewGroup group2 = new ListViewGroup("花");
+            ListViewGroup group3 = new ListViewGroup("动物");
+            ListViewGroup group4 = new ListViewGroup("人物");
+         
+            listView1.Groups.Add(group1);
+            listView1.Groups.Add(group2);
+            listView1.Groups.Add(group3);
+            listView1.Groups.Add(group4);
+            //创建一个字典
+            Dictionary<string, string> groupDic = new Dictionary<string, string>();
+            groupDic.Add("花","02");
+            groupDic.Add("风景", "01");
+            groupDic.Add("动物", "03");
+            groupDic.Add("人物", "04");
+            //分组
+            for (int i = 0; i <listView1.Items.Count; i++)
+            {
+                foreach (ListViewGroup lvg in listView1.Groups)
+                {
+                    if(listView1.Items[i].Text.Substring(0, 2) == groupDic[lvg.Header])
+                    {
+                        listView1.Items[i].Group = lvg;
+                        break;
+                    }
+                   
+                }
+            }
+        }
+
+            
+
